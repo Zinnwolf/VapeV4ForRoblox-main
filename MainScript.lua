@@ -185,9 +185,15 @@ local function vapeGithubRequest(scripturl)
 				displayErrorPopup("The connection to github is taking a while, Please be patient.")
 			end
 		end)
-		suc, res = pcall(function() return game:HttpGet("https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/"..readfile("vape/commithash.txt").."/"..scripturl, true) end)
+		suc, res = pcall(function() local ref = isfile("vape/commithash.txt") and readfile("vape/commithash.txt") or "main"
+			local url = "https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/"..ref.."/"..scripturl
+			local response = game:HttpGet(url, true)
+			if response == "404: Not Found" and ref ~= "main" then
+				response = game:HttpGet("https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/main/"..scripturl, true)
+			end
+			return response end)
 		if not suc or res == "404: Not Found" then
-			displayErrorPopup("Failed to connect to github : vape/"..scripturl.." : "..res)
+			displayErrorPopup("Failed to connect to github : vape/"..scripturl.." : "..tostring(res))
 			error(res)
 		end
 		if scripturl:find(".lua") then res = "--This watermark is used to delete the file if its cached, remove it to make the file persist after commits.\n"..res end
@@ -284,7 +290,12 @@ if not isfile("vape/CustomModules/cachechecked.txt") then
 				if isfile(v) and not readfile(v):find("--This watermark is used to delete the file if its cached, remove it to make the file persist after commits.") then
 					local last = v:split('\\')
 					last = last[#last]
-					local suc, publicrepo = pcall(function() return game:HttpGet("https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/"..readfile("vape/commithash.txt").."/CustomModules/"..last) end)
+					local suc, publicrepo = pcall(function() local ref = isfile("vape/commithash.txt") and readfile("vape/commithash.txt") or "main"
+						local response = game:HttpGet("https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/"..ref.."/CustomModules/"..last, true)
+						if response == "404: Not Found" and ref ~= "main" then
+							response = game:HttpGet("https://raw.githubusercontent.com/Zinnwolf/VapeV4ForRoblox-main/main/CustomModules/"..last, true)
+						end
+						return response end)
 					if suc and publicrepo and publicrepo ~= "404: Not Found" then
 						writefile("vape/CustomModules/"..last, "--This watermark is used to delete the file if its cached, remove it to make the file persist after commits.\n"..publicrepo)
 					end
