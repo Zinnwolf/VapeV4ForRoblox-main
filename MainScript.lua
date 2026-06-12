@@ -98,84 +98,82 @@ local queueonteleport = syn and syn.queue_on_teleport or queue_on_teleport or fu
 local delfile = delfile or function(file) writefile(file, "") end
 
 local function displayErrorPopup(text, funclist)
-	local oldidentity = getidentity()
-	pcall(function() setidentity(8) end)
+	warn("[Vape] "..tostring(text))
 
-	local coreGui = game:GetService("CoreGui")
-	local playerGui = playersService and playersService.LocalPlayer and playersService.LocalPlayer:FindFirstChildOfClass("PlayerGui")
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "VapeErrorPrompt"
-	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
-	pcall(function() gui.Parent = coreGui end)
-	if not gui.Parent and playerGui then gui.Parent = playerGui end
-	if not gui.Parent then warn("Vape: "..tostring(text)); pcall(function() setidentity(oldidentity) end); return end
+	local suc = pcall(function()
+		local gui = Instance.new("ScreenGui")
+		gui.Name = "VapeErrorPopup"
+		gui.ResetOnSpawn = false
+		gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+		gui.Parent = game:GetService("CoreGui")
 
-	local holder = Instance.new("Frame")
-	holder.Size = UDim2.fromScale(1, 1)
-	holder.BackgroundTransparency = 0.35
-	holder.BackgroundColor3 = Color3.new(0, 0, 0)
-	holder.Parent = gui
+		local frame = Instance.new("Frame")
+		frame.Size = UDim2.fromOffset(420, funclist and 155 or 120)
+		frame.Position = UDim2.new(0.5, -210, 0.5, -60)
+		frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+		frame.BorderSizePixel = 0
+		frame.Parent = gui
 
-	local box = Instance.new("Frame")
-	box.AnchorPoint = Vector2.new(0.5, 0.5)
-	box.Position = UDim2.fromScale(0.5, 0.5)
-	box.Size = UDim2.fromOffset(430, 170)
-	box.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
-	box.BorderSizePixel = 0
-	box.Parent = holder
-	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+		local title = Instance.new("TextLabel")
+		title.Size = UDim2.new(1, -20, 0, 30)
+		title.Position = UDim2.fromOffset(10, 8)
+		title.BackgroundTransparency = 1
+		title.Text = "Vape"
+		title.TextColor3 = Color3.new(1, 1, 1)
+		title.TextSize = 22
+		title.Font = Enum.Font.SourceSansBold
+		title.TextXAlignment = Enum.TextXAlignment.Left
+		title.Parent = frame
 
-	local title = Instance.new("TextLabel")
-	title.BackgroundTransparency = 1
-	title.Position = UDim2.fromOffset(14, 10)
-	title.Size = UDim2.new(1, -28, 0, 26)
-	title.Font = Enum.Font.SourceSansBold
-	title.TextSize = 22
-	title.TextXAlignment = Enum.TextXAlignment.Left
-	title.TextColor3 = Color3.new(1, 1, 1)
-	title.Text = "Vape"
-	title.Parent = box
+		local body = Instance.new("TextLabel")
+		body.Size = UDim2.new(1, -20, 0, 58)
+		body.Position = UDim2.fromOffset(10, 40)
+		body.BackgroundTransparency = 1
+		body.Text = tostring(text)
+		body.TextWrapped = true
+		body.TextColor3 = Color3.fromRGB(230, 230, 230)
+		body.TextSize = 18
+		body.Font = Enum.Font.SourceSans
+		body.TextXAlignment = Enum.TextXAlignment.Left
+		body.TextYAlignment = Enum.TextYAlignment.Top
+		body.Parent = frame
 
-	local msg = Instance.new("TextLabel")
-	msg.BackgroundTransparency = 1
-	msg.Position = UDim2.fromOffset(14, 42)
-	msg.Size = UDim2.new(1, -28, 1, -92)
-	msg.Font = Enum.Font.SourceSans
-	msg.TextSize = 18
-	msg.TextWrapped = true
-	msg.TextXAlignment = Enum.TextXAlignment.Left
-	msg.TextYAlignment = Enum.TextYAlignment.Top
-	msg.TextColor3 = Color3.fromRGB(230, 230, 230)
-	msg.Text = tostring(text)
-	msg.Parent = box
+		local function makeButton(name, callback, x)
+			local button = Instance.new("TextButton")
+			button.Size = UDim2.fromOffset(90, 28)
+			button.Position = UDim2.new(1, x, 1, -38)
+			button.BackgroundColor3 = Color3.fromRGB(55, 55, 55)
+			button.BorderSizePixel = 0
+			button.Text = name
+			button.TextColor3 = Color3.new(1, 1, 1)
+			button.TextSize = 18
+			button.Font = Enum.Font.SourceSans
+			button.Parent = frame
+			button.MouseButton1Click:Connect(function()
+				gui:Destroy()
+				if callback then callback() end
+			end)
+		end
 
-	local buttons = {}
-	if type(funclist) == "table" then
-		for name, callback in pairs(funclist) do table.insert(buttons, {Text = tostring(name), Callback = callback}) end
-	else
-		table.insert(buttons, {Text = "OK", Callback = type(funclist) == "function" and funclist or nil})
+		if funclist then
+			local buttons = {}
+			for name, callback in pairs(funclist) do
+				table.insert(buttons, {name, callback})
+			end
+			for i, data in ipairs(buttons) do
+				makeButton(data[1], data[2], -((#buttons - i + 1) * 100))
+			end
+		else
+			makeButton("OK", nil, -100)
+		end
+	end)
+
+	if not suc and funclist then
+		for _, callback in pairs(funclist) do
+			if callback then callback() end
+			break
+		end
 	end
-
-	for i, buttonData in ipairs(buttons) do
-		local button = Instance.new("TextButton")
-		button.Size = UDim2.fromOffset(88, 30)
-		button.Position = UDim2.new(1, -(14 + ((#buttons - i) * 96) + 88), 1, -42)
-		button.BackgroundColor3 = Color3.fromRGB(5, 134, 105)
-		button.BorderSizePixel = 0
-		button.Font = Enum.Font.SourceSansBold
-		button.TextSize = 16
-		button.TextColor3 = Color3.new(1, 1, 1)
-		button.Text = buttonData.Text
-		button.Parent = box
-		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 5)
-		button.MouseButton1Click:Connect(function()
-			gui:Destroy()
-			if buttonData.Callback then task.spawn(buttonData.Callback) end
-		end)
-	end
-
-	pcall(function() setidentity(oldidentity) end)
 end
 
 local function vapeGithubRequest(scripturl)
@@ -200,6 +198,8 @@ end
 
 local function downloadVapeAsset(path)
 	if not isfile(path) then
+		local finished = false
+
 		task.spawn(function()
 			local textlabel = Instance.new("TextLabel")
 			textlabel.Size = UDim2.new(1, 0, 0, 36)
@@ -211,17 +211,32 @@ local function downloadVapeAsset(path)
 			textlabel.TextColor3 = Color3.new(1, 1, 1)
 			textlabel.Position = UDim2.new(0, 0, 0, -36)
 			textlabel.Parent = GuiLibrary.MainGui
-			repeat task.wait() until isfile(path)
-			textlabel:Destroy()
+
+			local started = tick()
+			repeat task.wait() until finished or isfile(path) or tick() - started > 10
+
+			if textlabel then
+				textlabel:Destroy()
+			end
 		end)
-		local suc, req = pcall(function() return vapeGithubRequest(path:gsub("vape/assets", "assets")) end)
-        if suc and req then
-		    writefile(path, req)
-        else
-            return ""
-        end
+
+		local suc, req = pcall(function()
+			return vapeGithubRequest(path:gsub("vape/assets", "assets"))
+		end)
+
+		finished = true
+
+		if suc and req and req ~= "" and req ~= "404: Not Found" then
+			pcall(function()
+				writefile(path, req)
+			end)
+		else
+			return vapeAssetTable[path] or ""
+		end
 	end
-	return getcustomasset(path) 
+
+	local asset = getcustomasset(path)
+	return asset ~= "" and asset or (vapeAssetTable[path] or "")
 end
 
 assert(not shared.VapeExecuted, "Vape Already Injected")
