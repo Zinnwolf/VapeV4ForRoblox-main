@@ -99,38 +99,83 @@ local delfile = delfile or function(file) writefile(file, "") end
 
 local function displayErrorPopup(text, funclist)
 	local oldidentity = getidentity()
-	setidentity(8)
-	local ErrorPrompt = getrenv().require(game:GetService("CoreGui").RobloxGui.Modules.ErrorPrompt)
-	local prompt = ErrorPrompt.new("Default")
-	prompt._hideErrorCode = true
-	local gui = Instance.new("ScreenGui", game:GetService("CoreGui"))
-	prompt:setErrorTitle("Vape")
-	local funcs
-	if funclist then 
-		funcs = {}
-		local num = 0
-		for i,v in pairs(funclist) do 
-			num = num + 1
-			table.insert(funcs, {
-				Text = i,
-				Callback = function() 
-					prompt:_close() 
-					v()
-				end,
-				Primary = num == #funclist
-			})
-		end
+	pcall(function() setidentity(8) end)
+
+	local coreGui = game:GetService("CoreGui")
+	local playerGui = playersService and playersService.LocalPlayer and playersService.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "VapeErrorPrompt"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	pcall(function() gui.Parent = coreGui end)
+	if not gui.Parent and playerGui then gui.Parent = playerGui end
+	if not gui.Parent then warn("Vape: "..tostring(text)); pcall(function() setidentity(oldidentity) end); return end
+
+	local holder = Instance.new("Frame")
+	holder.Size = UDim2.fromScale(1, 1)
+	holder.BackgroundTransparency = 0.35
+	holder.BackgroundColor3 = Color3.new(0, 0, 0)
+	holder.Parent = gui
+
+	local box = Instance.new("Frame")
+	box.AnchorPoint = Vector2.new(0.5, 0.5)
+	box.Position = UDim2.fromScale(0.5, 0.5)
+	box.Size = UDim2.fromOffset(430, 170)
+	box.BackgroundColor3 = Color3.fromRGB(32, 32, 36)
+	box.BorderSizePixel = 0
+	box.Parent = holder
+	Instance.new("UICorner", box).CornerRadius = UDim.new(0, 8)
+
+	local title = Instance.new("TextLabel")
+	title.BackgroundTransparency = 1
+	title.Position = UDim2.fromOffset(14, 10)
+	title.Size = UDim2.new(1, -28, 0, 26)
+	title.Font = Enum.Font.SourceSansBold
+	title.TextSize = 22
+	title.TextXAlignment = Enum.TextXAlignment.Left
+	title.TextColor3 = Color3.new(1, 1, 1)
+	title.Text = "Vape"
+	title.Parent = box
+
+	local msg = Instance.new("TextLabel")
+	msg.BackgroundTransparency = 1
+	msg.Position = UDim2.fromOffset(14, 42)
+	msg.Size = UDim2.new(1, -28, 1, -92)
+	msg.Font = Enum.Font.SourceSans
+	msg.TextSize = 18
+	msg.TextWrapped = true
+	msg.TextXAlignment = Enum.TextXAlignment.Left
+	msg.TextYAlignment = Enum.TextYAlignment.Top
+	msg.TextColor3 = Color3.fromRGB(230, 230, 230)
+	msg.Text = tostring(text)
+	msg.Parent = box
+
+	local buttons = {}
+	if type(funclist) == "table" then
+		for name, callback in pairs(funclist) do table.insert(buttons, {Text = tostring(name), Callback = callback}) end
+	else
+		table.insert(buttons, {Text = "OK", Callback = type(funclist) == "function" and funclist or nil})
 	end
-	prompt:updateButtons(funcs or {{
-		Text = "OK",
-		Callback = function() 
-			prompt:_close() 
-		end,
-		Primary = true
-	}}, 'Default')
-	prompt:setParent(gui)
-	prompt:_open(text)
-	setidentity(oldidentity)
+
+	for i, buttonData in ipairs(buttons) do
+		local button = Instance.new("TextButton")
+		button.Size = UDim2.fromOffset(88, 30)
+		button.Position = UDim2.new(1, -(14 + ((#buttons - i) * 96) + 88), 1, -42)
+		button.BackgroundColor3 = Color3.fromRGB(5, 134, 105)
+		button.BorderSizePixel = 0
+		button.Font = Enum.Font.SourceSansBold
+		button.TextSize = 16
+		button.TextColor3 = Color3.new(1, 1, 1)
+		button.Text = buttonData.Text
+		button.Parent = box
+		Instance.new("UICorner", button).CornerRadius = UDim.new(0, 5)
+		button.MouseButton1Click:Connect(function()
+			gui:Destroy()
+			if buttonData.Callback then task.spawn(buttonData.Callback) end
+		end)
+	end
+
+	pcall(function() setidentity(oldidentity) end)
 end
 
 local function vapeGithubRequest(scripturl)
